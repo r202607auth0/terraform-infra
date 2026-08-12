@@ -1,0 +1,24 @@
+# Terraform working directory & state
+.terraform/
+.terraform.tfstate.lock.info
+*.tfstate
+*.tfstate.*
+
+# Saved plan files contain sensitive variable values in cleartext
+tfplan
+*.tfplan
+tfplan.txt
+
+# Local overrides and secrets — never commit
+*.auto.tfvars
+secrets.tfvars
+terraform.tfvars
+.env
+
+# Crash logs
+crash.log
+crash.*.log
+
+# NOTE: .terraform.lock.hcl SHOULD be committed so the pipeline resolves the
+# exact same provider versions in the Plan and Apply jobs.
+!.terraform.lock.hcl

@@ -1,0 +1,242 @@
+##############################################################################
+# .github/workflows/terraform-env.yml – Reusable per-environment workflow
+#
+# Produces two jobs:
+#   1. plan  – runs `terraform plan` and uploads the binary plan file as an
+#              artifact. Emits `has-changes` so apply can be skipped on no-op.
+#   2. apply – bound to a GitHub Environment, which is where the manual
+#              approval / protection rules live. Applies the *exact* reviewed
+#              plan. Only runs on push to main, never on a pull request.
+#
+# CONFIGURATION MODEL (matches Settings > Secrets and variables > Actions):
+#
+#   Repository VARIABLES (non-sensitive, visible in logs — good for debugging):
+#     AUTH0_DOMAIN_<ENV>      AUTH0_CLIENT_ID_<ENV>      AWS_ACCOUNT_ID_<ENV>
+#     AWS_REGION              AWS_OIDC_ROLE_NAME
+#   Passed in as plain INPUTS below — they are not secrets.
+#
+#   Repository SECRETS (sensitive, auto-masked in logs):
+#     AUTH0_CLIENT_SECRET_<ENV>
+#     SENDGRID_API_KEY_<ENV>
+#     CIF_VALIDATION_API_SECRET_<ENV>
+#
+# There are NO cloud credentials in GitHub. AWS access for the S3 state backend
+# is obtained per-run by assuming an IAM role via OIDC (terraform-setup).
+#
+# Approvals are NOT defined in YAML. Configure them once per environment under
+#   Settings > Environments > <env> > Required reviewers.
+##############################################################################
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'dev | qa | staging | prod (also the GitHub Environment name for approvals)'
+        type: string
+        required: true
+      terraform-version:
+        description: 'Terraform CLI version'
+        type: string
+        required: false
+        default: '1.9.8'
+      # ── Non-sensitive Auth0 identifiers (repository VARIABLES) ───────────
+      auth0-domain:
+        description: 'Auth0 tenant domain for this environment'
+        type: string
+        required: true
+      auth0-client-id:
+        description: 'Auth0 Management API (M2M) client ID for this environment'
+        type: string
+        required: true
+      # ── Non-sensitive AWS targeting (repository VARIABLES) ───────────────
+      aws-account-id:
+        description: 'AWS account ID for this environment (state bucket + EventBridge sink)'
+        type: string
+        required: true
+      aws-region:
+        description: 'AWS region for the S3 state bucket and EventBridge sink'
+        type: string
+        required: false
+        default: 'us-east-1'
+      aws-oidc-role-name:
+        description: 'IAM role name assumed via GitHub OIDC'
+        type: string
+        required: false
+        default: 'github-actions-terraform'
+    secrets:
+      AUTH0_CLIENT_SECRET:
+        required: true
+      SENDGRID_API_KEY:
+        required: true
+      CIF_VALIDATION_API_SECRET:
+        required: true
+
+env:
+  TF_IN_AUTOMATION: 'true'
+  TF_INPUT: '0'
+  TF_CLI_ARGS: '-no-color'
+
+jobs:
+  # ══════════════════════════════════════════════════════════════════════════
+  # PLAN
+  # ══════════════════════════════════════════════════════════════════════════
+  plan:
+    name: Plan (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write      # OIDC token for AWS role assumption (state backend)
+      contents: read       # checkout
+    outputs:
+      has-changes: ${{ steps.plan.outputs.has-changes }}
+    # Inputs + secrets -> Terraform input variables. Secret-sourced values are
+    # auto-masked in logs; variable-sourced values are not sensitive.
+    env:
+      TF_VAR_auth0_domain: ${{ inputs.auth0-domain }}
+      TF_VAR_auth0_mgmt_client_id: ${{ inputs.auth0-client-id }}
+      TF_VAR_auth0_mgmt_client_secret: ${{ secrets.AUTH0_CLIENT_SECRET }}
+      TF_VAR_sendgrid_api_key: ${{ secrets.SENDGRID_API_KEY }}
+      TF_VAR_cif_validation_api_secret: ${{ secrets.CIF_VALIDATION_API_SECRET }}
+      TF_VAR_aws_account_id: ${{ inputs.aws-account-id }}
+      TF_VAR_aws_region: ${{ inputs.aws-region }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Fail fast with a CLEAR message if a referenced secret/variable is
+      # missing or empty — GitHub silently passes empty strings otherwise,
+      # which surfaces later as a confusing Auth0 401 or AWS AccessDenied.
+      - name: Preflight – verify required configuration is present
+        run: |
+          set -euo pipefail
+          missing=0
+          check() {
+            if [ -z "$2" ]; then
+              echo "::error::$1 is EMPTY. Create/verify it under Settings > Secrets and variables > Actions for environment '${{ inputs.environment }}'."
+              missing=1
+            fi
+          }
+          check "AUTH0_DOMAIN_<ENV> (repository variable)"             "${TF_VAR_auth0_domain}"
+          check "AUTH0_CLIENT_ID_<ENV> (repository variable)"          "${TF_VAR_auth0_mgmt_client_id}"
+          check "AWS_ACCOUNT_ID_<ENV> (repository variable)"           "${TF_VAR_aws_account_id}"
+          check "AUTH0_CLIENT_SECRET_<ENV> (repository secret)"        "${TF_VAR_auth0_mgmt_client_secret}"
+          check "SENDGRID_API_KEY_<ENV> (repository secret)"           "${TF_VAR_sendgrid_api_key}"
+          check "CIF_VALIDATION_API_SECRET_<ENV> (repository secret)"  "${TF_VAR_cif_validation_api_secret}"
+          exit $missing
+
+      - name: Terraform setup (CLI + AWS OIDC backend auth)
+        uses: ./.github/actions/terraform-setup
+        with:
+          aws-account-id: ${{ inputs.aws-account-id }}
+          aws-region: ${{ inputs.aws-region }}
+          aws-oidc-role-name: ${{ inputs.aws-oidc-role-name }}
+          terraform-version: ${{ inputs.terraform-version }}
+
+      - name: Terraform init
+        run: |
+          set -euo pipefail
+          terraform init -reconfigure -lock-timeout=5m \
+            -backend-config="backend/${{ inputs.environment }}.hcl"
+
+      - name: Terraform plan
+        id: plan
+        run: |
+          set -uo pipefail
+
+          # -detailed-exitcode: 0 = no changes, 1 = error, 2 = changes present
+          terraform plan -input=false -lock-timeout=5m -detailed-exitcode \
+            -var-file="terraform.${{ inputs.environment }}.tfvars" \
+            -out=tfplan
+          code=$?
+
+          if [ "$code" -eq 1 ]; then
+            echo "terraform plan failed."
+            exit 1
+          elif [ "$code" -eq 0 ]; then
+            echo "No infrastructure changes detected. Apply will be skipped."
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changes detected. Apply job will run (after approval)."
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Human-readable plan for the run log / PR reviewers.
+          terraform show -no-color tfplan > tfplan.txt
+
+      - name: Plan summary
+        if: always() && hashFiles('tfplan.txt') != ''
+        run: |
+          {
+            echo "### Terraform plan – ${{ inputs.environment }}"
+            echo '```'
+            # Cap the summary so a huge plan doesn't blow the 1 MB limit.
+            head -c 60000 tfplan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # SECURITY NOTE: a saved plan file stores variable values — including
+      # sensitive ones — in cleartext. Keep retention short and restrict who
+      # can download run artifacts (repo/org settings).
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}
+          path: |
+            tfplan
+            tfplan.txt
+          retention-days: 1
+          if-no-files-found: error
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # APPLY (gated by the GitHub Environment's protection rules / approvals)
+  # ══════════════════════════════════════════════════════════════════════════
+  apply:
+    name: Apply (${{ inputs.environment }})
+    needs: plan
+    # Apply only ever runs on a push to main with real changes — never on a PR.
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.plan.outputs.has-changes == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}   # ← approvals & checks live here
+    permissions:
+      id-token: write
+      contents: read
+    # Needed at apply time too: terraform init evaluates the provider config.
+    env:
+      TF_VAR_auth0_domain: ${{ inputs.auth0-domain }}
+      TF_VAR_auth0_mgmt_client_id: ${{ inputs.auth0-client-id }}
+      TF_VAR_auth0_mgmt_client_secret: ${{ secrets.AUTH0_CLIENT_SECRET }}
+      TF_VAR_sendgrid_api_key: ${{ secrets.SENDGRID_API_KEY }}
+      TF_VAR_cif_validation_api_secret: ${{ secrets.CIF_VALIDATION_API_SECRET }}
+      TF_VAR_aws_account_id: ${{ inputs.aws-account-id }}
+      TF_VAR_aws_region: ${{ inputs.aws-region }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Terraform setup (CLI + AWS OIDC backend auth)
+        uses: ./.github/actions/terraform-setup
+        with:
+          aws-account-id: ${{ inputs.aws-account-id }}
+          aws-region: ${{ inputs.aws-region }}
+          aws-oidc-role-name: ${{ inputs.aws-oidc-role-name }}
+          terraform-version: ${{ inputs.terraform-version }}
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}
+
+      - name: Terraform init
+        run: |
+          set -euo pipefail
+          terraform init -reconfigure -lock-timeout=5m \
+            -backend-config="backend/${{ inputs.environment }}.hcl"
+
+      - name: Terraform apply
+        run: |
+          set -euo pipefail
+          # Applying a saved plan file: no -auto-approve needed and no
+          # -var-file allowed (values are baked into the plan).
+          terraform apply -input=false -lock-timeout=5m tfplan

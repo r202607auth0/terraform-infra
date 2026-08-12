@@ -1,0 +1,85 @@
+##############################################################################
+# .github/actions/terraform-setup/action.yml – Reusable composite action
+#
+# Installs Terraform and authenticates to AWS via GitHub OIDC (short-lived
+# STS credentials) so the `s3` remote-state backend can read and write state.
+#
+# It does NOT handle the Auth0 / SendGrid / CIF app secrets — those come from
+# GitHub secrets and are injected as TF_VAR_* env vars directly in the
+# plan/apply jobs (see terraform-env.yml).
+#
+# Consumed by .github/workflows/terraform-env.yml for both the Plan and Apply
+# jobs.
+#
+# ── AWS PREREQUISITES (per environment account) ─────────────────────────────
+# 1. GitHub OIDC identity provider registered in the account:
+#      Provider URL: https://token.actions.githubusercontent.com
+#      Audience:     sts.amazonaws.com
+# 2. An IAM role (default name below) whose trust policy restricts
+#    token.actions.githubusercontent.com:sub to THIS repo, e.g.
+#      "repo:<ORG>/<REPO>:ref:refs/heads/main"
+#      "repo:<ORG>/<REPO>:pull_request"
+#      "repo:<ORG>/<REPO>:environment:prod"
+#    Scope the sub condition tightly — a wildcard like repo:<ORG>/*:* lets any
+#    repo in the org assume the role.
+# 3. The role's permission policy grants only S3 state + DynamoDB lock access
+#    (see backend/<env>.hcl for the exact actions).
+#
+# No AWS access keys are stored in GitHub. Credentials are minted per run and
+# expire automatically.
+##############################################################################
+
+name: 'Terraform Setup'
+description: 'Install Terraform and assume an AWS IAM role via OIDC for the S3 backend'
+
+inputs:
+  aws-account-id:
+    description: 'Target AWS account ID for this environment (from vars.AWS_ACCOUNT_ID_<ENV>)'
+    required: true
+  aws-region:
+    description: 'AWS region for STS and the S3 state bucket'
+    required: false
+    default: 'us-east-1'
+  aws-oidc-role-name:
+    description: 'Name of the IAM role the workflow assumes via OIDC'
+    required: false
+    default: 'github-actions-terraform'
+  terraform-version:
+    description: 'Terraform CLI version to install'
+    required: false
+    default: '1.9.8'
+
+runs:
+  using: 'composite'
+  steps:
+    # ── 1. Pin the Terraform CLI version ──────────────────────────────────
+    # terraform_wrapper: false keeps raw stdout/exit codes intact so the plan
+    # job can read `terraform plan -detailed-exitcode` reliably.
+    - name: Install Terraform ${{ inputs.terraform-version }}
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+        terraform_wrapper: false
+
+    # ── 2. Assume the AWS role via OIDC ───────────────────────────────────
+    # Requires the calling job to have `permissions: id-token: write`.
+    # This exports AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY /
+    # AWS_SESSION_TOKEN / AWS_REGION into the job environment, which the S3
+    # backend and AWS SDK pick up automatically — nothing further to export.
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ inputs.aws-oidc-role-name }}
+        aws-region: ${{ inputs.aws-region }}
+        role-session-name: gha-terraform-${{ github.run_id }}
+        audience: sts.amazonaws.com
+
+    # ── 3. Confirm which identity we actually got ─────────────────────────
+    # Cheap, and turns "AccessDenied on s3:GetObject" into an obvious
+    # wrong-account / wrong-role diagnosis. Account ID and role ARN are not
+    # secrets.
+    - name: Verify assumed identity
+      shell: bash
+      run: |
+        set -euo pipefail
+        aws sts get-caller-identity --output table
