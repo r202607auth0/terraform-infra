@@ -118,7 +118,24 @@ jobs:
           check "SENDGRID_API_KEY_DEV (repository secret)"           "${TF_VAR_sendgrid_api_key}"
           check "CIF_VALIDATION_API_SECRET_DEV (repository secret)"  "${TF_VAR_cif_validation_api_secret}"
           exit $missing
+ # ── INSERT BELOW THIS LINE ──────────────────────────────────────────
+      - name: Debug OIDC claims
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const t = await core.getIDToken('sts.amazonaws.com');
+            const c = JSON.parse(Buffer.from(t.split('.')[1],'base64').toString());
+            core.info(`sub:   ${c.sub}`);
+            core.info(`aud:   ${c.aud}`);
+            core.info(`iss:   ${c.iss}`);
+            core.info(`repo:  ${c.repository}`);
+            core.info(`event: ${c.event_name}`);
 
+      - name: Debug target role ARN
+        run: |
+          echo "arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ inputs.aws-oidc-role-name }}"
+      # ── INSERT ABOVE THIS LINE ──────────────────────────────────────────
+      
       - name: Terraform setup (CLI + AWS OIDC backend auth)
         uses: ./.github/actions/terraform-setup
         with:
