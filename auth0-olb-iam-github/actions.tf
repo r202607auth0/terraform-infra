@@ -10,6 +10,16 @@
 # UC-09: Session / Device Activity – enrich login event log
 # UC-10: Delegated Admin – delegate metadata + role enforcement
 # UC-11: User Notifications – event-driven security alerts
+#
+# ---------------------------------------------------------------------------
+# NOTE ON HEREDOC INTERPOLATION (fixes "Extra characters after interpolation
+# expression"):
+#   Terraform parses ${ ... } inside heredocs as its OWN interpolation. Any
+#   JavaScript template literal that needs a runtime ${ ... } must therefore be
+#   escaped as $${ ... } so Terraform emits a literal ${ ... } to Auth0.
+#   Genuine Terraform interpolations (e.g. ${var.environment}) live OUTSIDE the
+#   heredocs, in resource attributes, and remain single-$.
+# ---------------------------------------------------------------------------
 ##############################################################################
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -124,7 +134,7 @@ resource "auth0_action" "post_login_geo_ip_block" {
 
       if (userCountry && BLOCKED_COUNTRIES.includes(userCountry)) {
         api.access.deny(
-          `Access is not permitted from your location (${userCountry}). ` +
+          `Access is not permitted from your location ($${userCountry}). ` +
           'Please contact support if you believe this is an error.'
         );
         return;
@@ -403,7 +413,7 @@ resource "auth0_action" "post_login_security_notifications" {
       if (riskFactors?.NewDevice?.confidence === 'high') {
         notifications.push({
           type: 'new_device_login',
-          message: "Your account was accessed from a new device on ${new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' })}.",
+          message: `Your account was accessed from a new device on $${new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' })}.`,
         });
       }
 
@@ -420,7 +430,7 @@ resource "auth0_action" "post_login_security_notifications" {
       if (highRiskScope) {
         notifications.push({
           type: 'high_risk_action_attempted',
-          message: `A sensitive action (${highRiskScope.replace('step_up:', '')}) was attempted on your account.`,
+          message: `A sensitive action ($${highRiskScope.replace('step_up:', '')}) was attempted on your account.`,
         });
       }
 
