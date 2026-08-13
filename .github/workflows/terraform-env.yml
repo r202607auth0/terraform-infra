@@ -236,6 +236,7 @@ jobs:
 
       - name: Terraform apply
         run: |
+        
           set -euo pipefail
           # Applying a saved plan file: no -auto-approve needed and no
           # -var-file allowed (values are baked into the plan).
