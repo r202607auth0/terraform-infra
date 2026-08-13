@@ -403,7 +403,7 @@ resource "auth0_action" "post_login_security_notifications" {
       if (riskFactors?.NewDevice?.confidence === 'high') {
         notifications.push({
           type: 'new_device_login',
-          message: `Your account was accessed from a new device on ${new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' })}.`,
+          message: "Your account was accessed from a new device on ${new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' })}.",
         });
       }
 
