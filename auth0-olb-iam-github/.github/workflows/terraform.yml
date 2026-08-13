@@ -36,6 +36,7 @@
 name: Auth0 OLB IAM – Terraform
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
     paths:
