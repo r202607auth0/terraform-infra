@@ -46,7 +46,7 @@ resource "auth0_branding_universal_login" "olb_pages" {
 resource "auth0_prompt_custom_text" "signup_en" {
   prompt   = "signup"
   language = "en"
-  body     = jsonencode({
+  body = jsonencode({
     "signup" = {
       "pageTitle"           = "Create Your Online Banking Account"
       "title"               = "Register for Online Banking"
@@ -61,7 +61,7 @@ resource "auth0_prompt_custom_text" "signup_en" {
 resource "auth0_prompt_custom_text" "signup_fr" {
   prompt   = "signup"
   language = "fr-CA"
-  body     = jsonencode({
+  body = jsonencode({
     "signup" = {
       "pageTitle"           = "Créer votre compte de banque en ligne"
       "title"               = "Inscription aux services bancaires en ligne"
@@ -77,11 +77,11 @@ resource "auth0_prompt_custom_text" "signup_fr" {
 resource "auth0_prompt_custom_text" "login_en" {
   prompt   = "login"
   language = "en"
-  body     = jsonencode({
+  body = jsonencode({
     "login" = {
-      "pageTitle"        = "Sign In – Online Banking"
-      "title"            = "Sign In"
-      "submitButtonText" = "Sign In"
+      "pageTitle"          = "Sign In – Online Banking"
+      "title"              = "Sign In"
+      "submitButtonText"   = "Sign In"
       "forgotPasswordText" = "Forgot Password?"
     }
   })
@@ -90,7 +90,7 @@ resource "auth0_prompt_custom_text" "login_en" {
 resource "auth0_prompt_custom_text" "login_fr" {
   prompt   = "login"
   language = "fr-CA"
-  body     = jsonencode({
+  body = jsonencode({
     "login" = {
       "pageTitle"          = "Connexion – Services bancaires en ligne"
       "title"              = "Connexion"
@@ -104,7 +104,7 @@ resource "auth0_prompt_custom_text" "login_fr" {
 resource "auth0_prompt_custom_text" "mfa_enroll_en" {
   prompt   = "mfa-push-enrollment-qr"
   language = "en"
-  body     = jsonencode({
+  body = jsonencode({
     "mfa-push-enrollment-qr" = {
       "pageTitle" = "Set Up Two-Step Verification"
       "title"     = "Protect Your Account with 2-Step Verification"
@@ -116,7 +116,7 @@ resource "auth0_prompt_custom_text" "mfa_enroll_en" {
 resource "auth0_prompt_custom_text" "reset_password_en" {
   prompt   = "reset-password"
   language = "en"
-  body     = jsonencode({
+  body = jsonencode({
     "reset-password" = {
       "pageTitle"        = "Reset Your Password – Online Banking"
       "title"            = "Create a New Password"
@@ -129,7 +129,7 @@ resource "auth0_prompt_custom_text" "reset_password_en" {
 resource "auth0_prompt_custom_text" "reset_password_fr" {
   prompt   = "reset-password"
   language = "fr-CA"
-  body     = jsonencode({
+  body = jsonencode({
     "reset-password" = {
       "pageTitle"        = "Réinitialiser votre mot de passe"
       "title"            = "Créer un nouveau mot de passe"

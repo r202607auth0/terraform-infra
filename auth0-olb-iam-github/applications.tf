@@ -6,18 +6,18 @@
 
 # ── Online Banking Portal – Server-Side Web App (FAPI 2.0) ─────────────────
 resource "auth0_client" "olb_portal" {
-  name            = "Online Banking Portal – ${upper(var.environment)}"
-  description     = "Server-side web application; FAPI 2.0 compliant"
-  app_type        = "regular_web"
-  is_first_party  = true
+  name           = "Online Banking Portal – ${upper(var.environment)}"
+  description    = "Server-side web application; FAPI 2.0 compliant"
+  app_type       = "regular_web"
+  is_first_party = true
 
-  callbacks             = var.app_callback_urls
-  allowed_logout_urls   = var.app_logout_urls
-  web_origins           = [for u in var.app_callback_urls : regex("^(https?://[^/]+)", u)[0]]
-  allowed_origins       = [for u in var.app_callback_urls : regex("^(https?://[^/]+)", u)[0]]
+  callbacks           = var.app_callback_urls
+  allowed_logout_urls = var.app_logout_urls
+  web_origins         = [for u in var.app_callback_urls : regex("^(https?://[^/]+)", u)[0]]
+  allowed_origins     = [for u in var.app_callback_urls : regex("^(https?://[^/]+)", u)[0]]
 
   # FAPI 2.0 – Proof Key for Code Exchange
-  token_endpoint_auth_method = "private_key_jwt"   # Private Key JWT (FAPI 2.0)
+  token_endpoint_auth_method = "private_key_jwt" # Private Key JWT (FAPI 2.0)
   grant_types = [
     "authorization_code",
     "refresh_token",
@@ -30,8 +30,8 @@ resource "auth0_client" "olb_portal" {
   refresh_token {
     rotation_type                = "rotating"
     expiration_type              = "expiring"
-    token_lifetime               = 2592000   # 30 days
-    idle_token_lifetime          = 1296000   # 15 days
+    token_lifetime               = 2592000 # 30 days
+    idle_token_lifetime          = 1296000 # 15 days
     leeway                       = 0
     infinite_idle_token_lifetime = false
     infinite_token_lifetime      = false
@@ -54,7 +54,7 @@ resource "auth0_client" "olb_portal" {
 resource "auth0_client_grant" "olb_portal_api_grant" {
   client_id = auth0_client.olb_portal.id
   audience  = auth0_resource_server.olb_api.identifier
-  scopes    = [
+  scopes = [
     "read:accounts",
     "write:transactions",
     "manage:profile",
@@ -64,10 +64,10 @@ resource "auth0_client_grant" "olb_portal_api_grant" {
 
 # ── Support Portal Application (UC-12 to UC-15) ────────────────────────────
 resource "auth0_client" "support_portal" {
-  name            = "Support Portal – ${upper(var.environment)}"
-  description     = "Internal support portal for CS agents; scoped Management API access"
-  app_type        = "regular_web"
-  is_first_party  = true
+  name           = "Support Portal – ${upper(var.environment)}"
+  description    = "Internal support portal for CS agents; scoped Management API access"
+  app_type       = "regular_web"
+  is_first_party = true
 
   callbacks           = var.support_portal_callback_urls
   allowed_logout_urls = var.support_portal_callback_urls

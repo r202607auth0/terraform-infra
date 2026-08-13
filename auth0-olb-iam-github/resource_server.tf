@@ -10,11 +10,11 @@ resource "auth0_resource_server" "olb_api" {
   identifier                                      = "https://api.olb.${var.environment}.example.com"
   signing_alg                                     = "RS256"
   allow_offline_access                            = true
-  token_lifetime                                  = 86400     # 24 h
-  token_lifetime_for_web                          = 7200      # 2 h for browser sessions
+  token_lifetime                                  = 86400 # 24 h
+  token_lifetime_for_web                          = 7200  # 2 h for browser sessions
   skip_consent_for_verifiable_first_party_clients = true
   enforce_policies                                = true
-  token_dialect                                   = "access_token_authz"   # include permissions in token
+  token_dialect                                   = "access_token_authz" # include permissions in token
 
   # ── Scopes ─────────────────────────────────────────────────────────────
   scopes {

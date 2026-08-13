@@ -76,7 +76,7 @@ variable "sspr_link_ttl_seconds" {
 variable "blocked_countries" {
   description = "ISO-3166-1 alpha-2 country codes blocked from accessing the portal (UC-02)"
   type        = list(string)
-  default     = ["KP", "IR", "SY", "RU", "MM"]  # DPRK, Iran, Syria, Russia, Myanmar
+  default     = ["KP", "IR", "SY", "RU", "MM"] # DPRK, Iran, Syria, Russia, Myanmar
   # Crimea / occupied Ukraine regions handled via IP blocklist (PM-57775)
 }
 

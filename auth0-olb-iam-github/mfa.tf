@@ -10,7 +10,7 @@
 ##############################################################################
 
 resource "auth0_guardian" "mfa" {
-  policy = "all-applications"   # MFA required for all OLB sessions
+  policy = "all-applications" # MFA required for all OLB sessions
 
   # ── Email OTP (UC-05 – Low strength / AAL2 / Phase 1) ──────────────────
   email = true
@@ -21,7 +21,7 @@ resource "auth0_guardian" "mfa" {
   # ── Push / Guardian SDK (UC-05 – High strength / AAL2+ / Later phase) ──
   push {
     amazon_sns {
-      aws_access_key_id                 = ""   # populate in later phase
+      aws_access_key_id                 = "" # populate in later phase
       aws_region                        = ""
       aws_secret_access_key             = ""
       sns_apns_platform_application_arn = ""

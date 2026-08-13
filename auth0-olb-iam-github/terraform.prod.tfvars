@@ -36,10 +36,10 @@ support_portal_callback_urls = [
 
 cif_validation_api_url = "https://core-banking.example.com/api/cif/validate"
 
-lockout_threshold     = 3      # UC-06: lock after 3 failed attempts
-sspr_link_ttl_seconds = 900    # UC-07: 15-minute password reset link
+lockout_threshold     = 3   # UC-06: lock after 3 failed attempts
+sspr_link_ttl_seconds = 900 # UC-07: 15-minute password reset link
 
 # UC-02: Blocked geographies (ISO 3166-1 alpha-2)
 blocked_countries = ["KP", "IR", "SY", "RU", "MM"]
 
-max_delegates_per_business = 3   # UC-10
+max_delegates_per_business = 3 # UC-10

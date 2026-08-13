@@ -9,12 +9,12 @@ resource "auth0_attack_protection" "olb" {
   # ── Brute-Force Protection (UC-06) ─────────────────────────────────────
   # Lock account after [var.lockout_threshold] failed password attempts
   brute_force_protection {
-    enabled              = true
-    shields              = ["block", "user_notification"]
-    allowlist            = []
-    mode                 = "count_per_identifier_and_ip"
-    max_attempts         = var.lockout_threshold   # default 3 (UC-06)
-    flags                = ["enroll_on_first_login"]
+    enabled      = true
+    shields      = ["block", "user_notification"]
+    allowlist    = []
+    mode         = "count_per_identifier_and_ip"
+    max_attempts = var.lockout_threshold # default 3 (UC-06)
+    flags        = ["enroll_on_first_login"]
   }
 
   # ── Suspicious IP Throttling (UC-02 Req-3) ─────────────────────────────
@@ -24,7 +24,7 @@ resource "auth0_attack_protection" "olb" {
     allowlist = []
     pre_login {
       max_attempts = 100
-      rate         = 864000   # attempts per day
+      rate         = 864000 # attempts per day
     }
     pre_user_registration {
       max_attempts = 50
@@ -34,10 +34,10 @@ resource "auth0_attack_protection" "olb" {
 
   # ── Breached Password Detection ─────────────────────────────────────────
   breached_password_detection {
-    enabled                    = true
-    shields                    = ["admin_notification", "block"]
+    enabled                      = true
+    shields                      = ["admin_notification", "block"]
     admin_notification_frequency = ["immediately"]
-    method                     = "standard"
+    method                       = "standard"
     pre_user_registration {
       shields = ["block"]
     }

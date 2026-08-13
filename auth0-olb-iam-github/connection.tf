@@ -13,7 +13,7 @@ resource "auth0_connection" "olb_users" {
   options {
     # ── Password Policy (UC-01, UC-07) ─────────────────────────────────────
     # Requirements: 12+ chars | upper | lower | digit | special char
-    password_policy = "excellent"   # Auth0 "excellent" = longest policy baseline
+    password_policy = "excellent" # Auth0 "excellent" = longest policy baseline
 
     password_complexity_options {
       min_length = 12
@@ -21,11 +21,11 @@ resource "auth0_connection" "olb_users" {
 
     password_history {
       enable = true
-      size   = 5   # UC-07: no reuse of last 5 passwords
+      size   = 5 # UC-07: no reuse of last 5 passwords
     }
 
     password_no_personal_info {
-      enable = true  # Prevent name/email in password
+      enable = true # Prevent name/email in password
     }
 
     password_dictionary {
@@ -37,18 +37,18 @@ resource "auth0_connection" "olb_users" {
     brute_force_protection = true
 
     # ── Registration / Login settings (UC-01, UC-02) ───────────────────────
-    disable_signup           = true   # Self-registration is gated (CIF validation required)
-    requires_username        = false  # Email is primary identifier for new users
+    disable_signup                 = true  # Self-registration is gated (CIF validation required)
+    requires_username              = false # Email is primary identifier for new users
     enabled_database_customization = false
 
     # ── Email verification (UC-02 Req-5) ───────────────────────────────────
     # Email verification is enforced via Post-Login Action (actions.tf)
     # Set_user_root_attributes handles email updates
-    set_user_root_attributes     = "on_each_login"
-    non_persistent_attrs         = []
+    set_user_root_attributes = "on_each_login"
+    non_persistent_attrs     = []
 
     # ── Import mode for legacy users (UC-03) ───────────────────────────────
-    import_mode = false   # Legacy users migrated via custom action; not bulk import
+    import_mode = false # Legacy users migrated via custom action; not bulk import
   }
 }
 
@@ -72,7 +72,7 @@ resource "auth0_connection" "olb_legacy_users" {
     }
     brute_force_protection   = true
     disable_signup           = true
-    requires_username        = true  # Legacy system: username (not email) as identifier
+    requires_username        = true # Legacy system: username (not email) as identifier
     set_user_root_attributes = "on_each_login"
   }
 }

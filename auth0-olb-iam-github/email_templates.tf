@@ -7,8 +7,8 @@
 ##############################################################################
 
 resource "auth0_email_provider" "sendgrid" {
-  name         = "sendgrid"
-  enabled      = true
+  name                 = "sendgrid"
+  enabled              = true
   default_from_address = "noreply@olb.example.com"
 
   credentials {
@@ -18,11 +18,11 @@ resource "auth0_email_provider" "sendgrid" {
 
 # UC-01 / UC-02 Req-5 – Email Verification
 resource "auth0_email_template" "verify_email" {
-  template  = "verify_email"
-  enabled   = true
-  from      = "noreply@olb.example.com"
-  subject   = "Verify your email address – Online Banking"
-  syntax    = "liquid"
+  template                = "verify_email"
+  enabled                 = true
+  from                    = "noreply@olb.example.com"
+  subject                 = "Verify your email address – Online Banking"
+  syntax                  = "liquid"
   url_lifetime_in_seconds = 86400
 
   body = <<-HTML
@@ -41,12 +41,12 @@ resource "auth0_email_template" "verify_email" {
 
 # UC-07 – Self-Service Password Reset (15-min TTL)
 resource "auth0_email_template" "reset_email" {
-  template  = "reset_email"
-  enabled   = true
-  from      = "noreply@olb.example.com"
-  subject   = "Reset your Online Banking password"
-  syntax    = "liquid"
-  url_lifetime_in_seconds = var.sspr_link_ttl_seconds   # 900 seconds = 15 min
+  template                = "reset_email"
+  enabled                 = true
+  from                    = "noreply@olb.example.com"
+  subject                 = "Reset your Online Banking password"
+  syntax                  = "liquid"
+  url_lifetime_in_seconds = var.sspr_link_ttl_seconds # 900 seconds = 15 min
 
   body = <<-HTML
     <html>
@@ -62,11 +62,11 @@ resource "auth0_email_template" "reset_email" {
 
 # UC-06 – Account Locked notification (password failure)
 resource "auth0_email_template" "blocked_account" {
-  template  = "blocked_account"
-  enabled   = true
-  from      = "noreply@olb.example.com"
-  subject   = "Your Online Banking account has been locked"
-  syntax    = "liquid"
+  template                = "blocked_account"
+  enabled                 = true
+  from                    = "noreply@olb.example.com"
+  subject                 = "Your Online Banking account has been locked"
+  syntax                  = "liquid"
   url_lifetime_in_seconds = 432000
 
   body = <<-HTML
@@ -83,11 +83,11 @@ resource "auth0_email_template" "blocked_account" {
 
 # UC-11 – Stolen Credentials warning
 resource "auth0_email_template" "stolen_credentials" {
-  template  = "stolen_credentials"
-  enabled   = true
-  from      = "noreply@olb.example.com"
-  subject   = "Security Alert – Online Banking"
-  syntax    = "liquid"
+  template                = "stolen_credentials"
+  enabled                 = true
+  from                    = "noreply@olb.example.com"
+  subject                 = "Security Alert – Online Banking"
+  syntax                  = "liquid"
   url_lifetime_in_seconds = 432000
 
   body = <<-HTML
@@ -103,11 +103,11 @@ resource "auth0_email_template" "stolen_credentials" {
 
 # UC-01 – Welcome email (sent by Action after successful registration)
 resource "auth0_email_template" "welcome_email" {
-  template  = "welcome_email"
-  enabled   = true
-  from      = "noreply@olb.example.com"
-  subject   = "Welcome to Online Banking"
-  syntax    = "liquid"
+  template                = "welcome_email"
+  enabled                 = true
+  from                    = "noreply@olb.example.com"
+  subject                 = "Welcome to Online Banking"
+  syntax                  = "liquid"
   url_lifetime_in_seconds = 432000
 
   body = <<-HTML
@@ -123,11 +123,11 @@ resource "auth0_email_template" "welcome_email" {
 
 # UC-01 – Change password (forced on first login / support-initiated reset)
 resource "auth0_email_template" "change_password" {
-  template  = "change_password"
-  enabled   = true
-  from      = "noreply@olb.example.com"
-  subject   = "Change your Online Banking password"
-  syntax    = "liquid"
+  template                = "change_password"
+  enabled                 = true
+  from                    = "noreply@olb.example.com"
+  subject                 = "Change your Online Banking password"
+  syntax                  = "liquid"
   url_lifetime_in_seconds = var.sspr_link_ttl_seconds
 
   body = <<-HTML

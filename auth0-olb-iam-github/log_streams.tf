@@ -17,7 +17,7 @@
 # in log delivery and a new partner event source to re-associate in AWS.
 resource "auth0_log_stream" "siem" {
   name   = "olb-siem-log-stream-${var.environment}"
-  type   = "eventbridge"          # AWS EventBridge; swap for "http" if using Splunk/Datadog
+  type   = "eventbridge" # AWS EventBridge; swap for "http" if using Splunk/Datadog
   status = "active"
 
   filters {
@@ -42,11 +42,11 @@ resource "auth0_log_stream" "siem" {
   }
   filters {
     type = "category"
-    name = "management.success"  # Support agent actions (UC-12–15)
+    name = "management.success" # Support agent actions (UC-12–15)
   }
   filters {
     type = "category"
-    name = "user.update"         # Profile changes (UC-08)
+    name = "user.update" # Profile changes (UC-08)
   }
 
   sink {

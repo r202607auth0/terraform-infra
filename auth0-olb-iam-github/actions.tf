@@ -221,7 +221,7 @@ resource "auth0_action" "post_login_geo_ip_block" {
   }
   secrets {
     name  = "BANNED_IPS_JSON"
-    value = jsonencode([])  # Populated once PM-57775 is completed
+    value = jsonencode([]) # Populated once PM-57775 is completed
   }
   secrets {
     name  = "REDIRECT_SECRET"
@@ -313,7 +313,7 @@ resource "auth0_action" "post_login_step_up" {
 
   secrets {
     name  = "STEP_UP_OPTION"
-    value = "option2"  # Change to "option1" if always-challenge is preferred
+    value = "option2" # Change to "option1" if always-challenge is preferred
   }
 }
 

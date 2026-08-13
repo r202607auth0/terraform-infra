@@ -42,7 +42,7 @@ terraform {
 }
 
 provider "auth0" {
-  domain        = dev-2xedy1phktorml3m.us.auth0.com # var.auth0_domain
-  client_id     = zKkYnkUXwZ0cUt7VTMvGpdrSOD2i7x5x # var.auth0_mgmt_client_id
+  domain        = dev-2xedy1phktorml3m.us.auth0.com                                # var.auth0_domain
+  client_id     = zKkYnkUXwZ0cUt7VTMvGpdrSOD2i7x5x                                 # var.auth0_mgmt_client_id
   client_secret = TiCX1mqDpfkgYKq2f0sCW-N8N0UpGG2NMLkT2CGx1o9eeZpzo9pA-r_1ZMhtFj8P # var.auth0_mgmt_client_secret
 }
