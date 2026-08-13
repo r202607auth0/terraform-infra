@@ -2,33 +2,29 @@
 # .github/workflows/terraform.yml
 # Auth0 Online Banking IAM – Terraform CI/CD (GitHub Actions)
 #
-# Flow:  validate ─► dev ─► qa ─► staging ─► prod
+# Flow:  validate ─► dev
 #
-# Each environment runs a Plan job followed by an approval-gated Apply job
+# Dev runs a Plan job followed by an approval-gated Apply job
 # (see .github/workflows/terraform-env.yml). Approvals are configured on the
-# GitHub *Environments* (dev / qa / staging / prod) under
-#   Settings > Environments > <env> > Required reviewers.
+# GitHub *Environment* `dev` under
+#   Settings > Environments > dev > Required reviewers.
 #
-# STATE: AWS S3, one bucket per environment account, per-env key. AWS access is
-# obtained per-run via GitHub OIDC role assumption — no AWS keys in GitHub.
+# STATE: AWS S3, dev bucket, dev key. AWS access is obtained per-run via
+# GitHub OIDC role assumption — no AWS keys in GitHub.
 #
-# CONFIGURATION NAMING (Settings > Secrets and variables > Actions — SUFFIX style):
+# CONFIGURATION NAMING (Settings > Secrets and variables > Actions):
 #
 #   Repository VARIABLES (non-sensitive):
-#     AUTH0_DOMAIN_DEV | _QA | _STAGING | _PROD
-#     AUTH0_CLIENT_ID_DEV | _QA | _STAGING | _PROD
-#     AWS_ACCOUNT_ID_DEV | _QA | _STAGING | _PROD
-#     AWS_REGION           (single, shared — defaults to us-east-1 if unset)
-#     AWS_OIDC_ROLE_NAME   (single, shared — defaults to github-actions-terraform)
+#     AUTH0_DOMAIN_DEV
+#     AUTH0_CLIENT_ID_DEV
+#     AWS_ACCOUNT_ID_DEV
+#     AWS_REGION           (defaults to us-east-1 if unset)
+#     AWS_OIDC_ROLE_NAME   (defaults to github-actions-terraform)
 #
 #   Repository SECRETS (sensitive):
-#     AUTH0_CLIENT_SECRET_DEV | _QA | _STAGING | _PROD        (exists)
-#     SENDGRID_API_KEY_DEV | _QA | _STAGING | _PROD           (CREATE THESE)
-#     CIF_VALIDATION_API_SECRET_DEV | _QA | _STAGING | _PROD  (CREATE THESE)
-#
-# NOTE: A SANDBOX environment exists in the repo's variables/secrets but is not
-# part of this promotion chain. To add it, copy the dev job, point it at the
-# *_SANDBOX names, and create backend/sandbox.hcl + terraform.sandbox.tfvars.
+#     AUTH0_CLIENT_SECRET_DEV
+#     SENDGRID_API_KEY_DEV
+#     CIF_VALIDATION_API_SECRET_DEV
 #
 # Pull requests run validate + plan only; apply never runs off `main`.
 ##############################################################################
@@ -101,7 +97,6 @@ jobs:
     needs: validate
     uses: ./.github/workflows/terraform-env.yml
     with:
-      environment: dev
       terraform-version: '1.9.8'
       auth0-domain: ${{ vars.AUTH0_DOMAIN_DEV }}
       auth0-client-id: ${{ vars.AUTH0_CLIENT_ID_DEV }}
@@ -112,64 +107,3 @@ jobs:
       AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET_DEV }}
       SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY_DEV }}
       CIF_VALIDATION_API_SECRET: ${{ secrets.CIF_VALIDATION_API_SECRET_DEV }}
-
-  # ══════════════════════════════════════════════════════════════════════════
-  # QA
-  # ══════════════════════════════════════════════════════════════════════════
-  qa:
-    name: QA
-    needs: dev
-    uses: ./.github/workflows/terraform-env.yml
-    with:
-      environment: qa
-      terraform-version: '1.9.8'
-      auth0-domain: ${{ vars.AUTH0_DOMAIN_QA }}
-      auth0-client-id: ${{ vars.AUTH0_CLIENT_ID_QA }}
-      aws-account-id: ${{ vars.AWS_ACCOUNT_ID_QA }}
-      aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
-      aws-oidc-role-name: ${{ vars.AWS_OIDC_ROLE_NAME || 'github-actions-terraform' }}
-    secrets:
-      AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET_QA }}
-      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY_QA }}
-      CIF_VALIDATION_API_SECRET: ${{ secrets.CIF_VALIDATION_API_SECRET_QA }}
-
-  # ══════════════════════════════════════════════════════════════════════════
-  # STAGING
-  # ══════════════════════════════════════════════════════════════════════════
-  staging:
-    name: STAGING
-    needs: qa
-    uses: ./.github/workflows/terraform-env.yml
-    with:
-      environment: staging
-      terraform-version: '1.9.8'
-      auth0-domain: ${{ vars.AUTH0_DOMAIN_STAGING }}
-      auth0-client-id: ${{ vars.AUTH0_CLIENT_ID_STAGING }}
-      aws-account-id: ${{ vars.AWS_ACCOUNT_ID_STAGING }}
-      aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
-      aws-oidc-role-name: ${{ vars.AWS_OIDC_ROLE_NAME || 'github-actions-terraform' }}
-    secrets:
-      AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET_STAGING }}
-      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY_STAGING }}
-      CIF_VALIDATION_API_SECRET: ${{ secrets.CIF_VALIDATION_API_SECRET_STAGING }}
-
-  # ══════════════════════════════════════════════════════════════════════════
-  # PROD
-  # ══════════════════════════════════════════════════════════════════════════
-  prod:
-  
-    name: PROD
-    needs: staging
-    uses: ./.github/workflows/terraform-env.yml
-    with:
-      environment: prod
-      terraform-version: '1.9.8'
-      auth0-domain: ${{ vars.AUTH0_DOMAIN_PROD }}
-      auth0-client-id: ${{ vars.AUTH0_CLIENT_ID_PROD }}
-      aws-account-id: ${{ vars.AWS_ACCOUNT_ID_PROD }}
-      aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
-      aws-oidc-role-name: ${{ vars.AWS_OIDC_ROLE_NAME || 'github-actions-terraform' }}
-    secrets:
-      AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET_PROD }}
-      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY_PROD }}
-      CIF_VALIDATION_API_SECRET: ${{ secrets.CIF_VALIDATION_API_SECRET_PROD }}
